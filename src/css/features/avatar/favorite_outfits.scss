@@ -1,0 +1,37 @@
+.rovalra-outfit-card {
+    position: relative;
+}
+
+.rovalra-favorite-outfit-btn {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.rovalra-favorite-outfit-btn:hover {
+    transform: scale(1.12);
+}
+
+.rovalra-favorite-outfit-btn.rovalra-favorited-outfit {
+    color: #ffc83d;
+}
+
+// Cards with a favorited outfit are moved to the front of their list in JS;
+// this just gives the tile a subtle highlight so the star reads as active.
+li.list-item.rovalra-favorited-outfit {
+    box-shadow: 0 0 0 2px #ffc83d inset;
+    border-radius: 8px;
+}

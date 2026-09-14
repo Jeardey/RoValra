@@ -1526,6 +1526,10 @@
             "addCustom": "Pick a custom color",
             "savedColor": "{{hex}}, right click to remove",
             "applyFailed": "Could not update your body colors. Try again in a moment."
+        },
+        "favoriteOutfits": {
+            "favorite": "Favorite this outfit",
+            "unfavorite": "Remove from favorites"
         }
     },
     "pinnedFriends": {

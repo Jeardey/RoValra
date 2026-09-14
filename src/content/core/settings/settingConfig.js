@@ -1597,6 +1597,17 @@ export const SETTINGS_CONFIG = {
                     'rovalra_avatar_rotator_interval',
                 ],
             },
+            favoriteOutfitsEnabled: {
+                label: 'Favorite Outfits',
+                description: [
+                    'Adds a star to each saved outfit on the Avatars tab so you can mark favorites.',
+                    'Favorited outfits are pinned to the top of the list, ahead of everything else.',
+                ],
+                type: 'checkbox',
+                default: true,
+                storageKey: ['rovalra_favorite_outfits'],
+                contributors: ['617784'],
+            },
         },
     },
     transactions: {
