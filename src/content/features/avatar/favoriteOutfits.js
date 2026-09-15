@@ -133,14 +133,23 @@ async function toggleFavorite(card, id) {
     scheduleReorder(card.parentElement);
 }
 
+function getThumbContainer(card) {
+    const tagged = card.querySelector('[data-thumbnail-target-id]');
+    if (tagged && tagged.tagName !== 'IMG') return tagged;
+
+    const img = card.querySelector('img');
+    if (!img) return card;
+
+    return img.parentElement && img.parentElement !== card
+        ? img.parentElement
+        : card;
+}
+
 function ensureButton(card, id) {
     if (card.querySelector(`.${BUTTON_CLASS}`)) return;
 
     card.classList.add(CARD_CLASS);
-
-    // Anchored to the thumbnail box itself, not the whole card, so it sits on
-    // the image instead of overlapping the name caption underneath it.
-    const thumb = card.querySelector('[data-thumbnail-target-id]') || card;
+    const thumb = getThumbContainer(card);
     thumb.classList.add(THUMB_CLASS);
 
     const button = document.createElement('button');
