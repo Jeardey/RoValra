@@ -8,6 +8,7 @@ const STORAGE_KEY = 'rovalra_favorite_outfits';
 
 const CARD_SELECTOR = 'li.list-item';
 const CARD_CLASS = 'rovalra-outfit-card';
+const THUMB_CLASS = 'rovalra-outfit-thumb';
 const BUTTON_CLASS = 'rovalra-favorite-outfit-btn';
 const ICON_CLASS = 'icon-favorite';
 const FAVORITED_CLASS = 'favorited';
@@ -137,6 +138,11 @@ function ensureButton(card, id) {
 
     card.classList.add(CARD_CLASS);
 
+    // Anchored to the thumbnail box itself, not the whole card, so it sits on
+    // the image instead of overlapping the name caption underneath it.
+    const thumb = card.querySelector('[data-thumbnail-target-id]') || card;
+    thumb.classList.add(THUMB_CLASS);
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = BUTTON_CLASS;
@@ -159,7 +165,7 @@ function ensureButton(card, id) {
         ),
     );
 
-    card.append(button);
+    thumb.append(button);
     updateButton(button, id);
 }
 
@@ -178,6 +184,7 @@ function attachCard(card) {
 
 function removeUi() {
     document.querySelectorAll(`.${BUTTON_CLASS}`).forEach((button) => button.remove());
+    document.querySelectorAll(`.${THUMB_CLASS}`).forEach((thumb) => thumb.classList.remove(THUMB_CLASS));
     document.querySelectorAll(`.${CARD_CLASS}`).forEach((card) => {
         card.classList.remove(CARD_CLASS);
         delete card.dataset[ID_DATASET_KEY];
