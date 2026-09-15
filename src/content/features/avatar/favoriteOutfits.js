@@ -1,6 +1,5 @@
 import { observeElement } from '../../core/observer.js';
 import { settings } from '../../core/settings/getSettings.js';
-import { Icon, ChangeIcon } from '../../core/ui/buildericon.js';
 import { addTooltip } from '../../core/ui/tooltip.js';
 import { ts } from '../../core/locale/i18n.js';
 
@@ -10,8 +9,10 @@ const STORAGE_KEY = 'rovalra_favorite_outfits';
 const CARD_SELECTOR = 'li.list-item';
 const CARD_CLASS = 'rovalra-outfit-card';
 const BUTTON_CLASS = 'rovalra-favorite-outfit-btn';
-const FAVORITED_CLASS = 'rovalra-favorited-outfit';
+const ICON_CLASS = 'icon-favorite';
+const FAVORITED_CLASS = 'favorited';
 const ID_DATASET_KEY = 'rovalraOutfitId';
+const ORDER_DATASET_KEY = 'rovalraOutfitOrder';
 
 let enabled = false;
 let favorites = new Set();
@@ -20,6 +21,7 @@ let storageListenerRegistered = false;
 
 const pendingLists = new Set();
 let reorderFrame = null;
+const naturalOrderCounters = new WeakMap();
 
 function loadFavorites() {
     return new Promise((resolve) => {
@@ -36,25 +38,48 @@ function saveFavorites() {
     });
 }
 
-// Every tab on this page reuses the same list-item markup, but only saved
-// outfits carry a thumbnail id without also linking out to the catalog.
+function isOnCreationsTab() {
+    if (window.location.hash.toLowerCase().includes('creations')) return true;
+
+    const breadcrumb = document.querySelector('.breadcrumb-container');
+    return Boolean(breadcrumb) && /creations/i.test(breadcrumb.textContent || '');
+}
+
+function getCardName(card) {
+    const nameEl = card.querySelector(
+        '[data-item-name], .avatar-name, .item-card-name',
+    );
+    return (nameEl?.dataset?.itemName || nameEl?.textContent || '').trim();
+}
+
 function getOutfitId(card) {
+    if (!isOnCreationsTab()) return null;
     if (card.querySelector('a[href*="/catalog/"], a[href*="/library/"]'))
         return null;
+    if (card.querySelector('[class*="robux" i]')) return null;
 
     const thumb = card.querySelector('[data-thumbnail-target-id]');
-    return thumb?.getAttribute('data-thumbnail-target-id') || null;
+    const thumbId = thumb?.getAttribute('data-thumbnail-target-id');
+    if (thumbId) return `t:${thumbId}`;
+
+    const name = getCardName(card);
+    return name ? `n:${name.toLowerCase()}` : null;
+}
+
+function assignNaturalOrder(card, list) {
+    if (card.dataset[ORDER_DATASET_KEY] !== undefined) return;
+    const next = (naturalOrderCounters.get(list) || 0) + 1;
+    naturalOrderCounters.set(list, next);
+    card.dataset[ORDER_DATASET_KEY] = String(next);
 }
 
 function updateButton(button, id) {
     const favorited = favorites.has(id);
-    ChangeIcon(button.querySelector('icon'), { icon: 'star', filled: favorited });
-    button.classList.toggle(FAVORITED_CLASS, favorited);
+    button.querySelector(`.${ICON_CLASS}`)?.classList.toggle(FAVORITED_CLASS, favorited);
     button.setAttribute('aria-pressed', String(favorited));
 }
 
 function updateCard(card, id) {
-    card.classList.toggle(FAVORITED_CLASS, favorites.has(id));
     const button = card.querySelector(`.${BUTTON_CLASS}`);
     if (button) updateButton(button, id);
 }
@@ -74,8 +99,6 @@ function scheduleReorder(list) {
     });
 }
 
-// Only reorders once every child is a recognised outfit tile, so a list that
-// mixes in something this feature does not understand is left alone.
 function reorderList(list) {
     if (!list?.isConnected) return;
 
@@ -85,14 +108,17 @@ function reorderList(list) {
     );
     if (cards.length < 2 || !allRecognised) return;
 
-    const favorited = [];
-    const rest = [];
-    for (const card of cards) {
-        (favorites.has(card.dataset[ID_DATASET_KEY]) ? favorited : rest).push(
-            card,
-        );
-    }
-    if (!favorited.length) return;
+    const sorted = [...cards].sort(
+        (a, b) =>
+            Number(a.dataset[ORDER_DATASET_KEY]) -
+            Number(b.dataset[ORDER_DATASET_KEY]),
+    );
+    const favorited = sorted.filter((card) =>
+        favorites.has(card.dataset[ID_DATASET_KEY]),
+    );
+    const rest = sorted.filter(
+        (card) => !favorites.has(card.dataset[ID_DATASET_KEY]),
+    );
 
     for (const card of [...favorited, ...rest]) list.appendChild(card);
 }
@@ -114,7 +140,10 @@ function ensureButton(card, id) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = BUTTON_CLASS;
-    button.append(Icon({ icon: 'star', material: true, size: 'small' }));
+
+    const icon = document.createElement('span');
+    icon.className = ICON_CLASS;
+    button.append(icon);
 
     button.addEventListener('click', (event) => {
         event.preventDefault();
@@ -130,7 +159,7 @@ function ensureButton(card, id) {
         ),
     );
 
-    card.prepend(button);
+    card.append(button);
     updateButton(button, id);
 }
 
@@ -141,6 +170,7 @@ function attachCard(card) {
     if (!id) return;
 
     card.dataset[ID_DATASET_KEY] = id;
+    assignNaturalOrder(card, card.parentElement);
     ensureButton(card, id);
     updateCard(card, id);
     scheduleReorder(card.parentElement);
@@ -149,8 +179,9 @@ function attachCard(card) {
 function removeUi() {
     document.querySelectorAll(`.${BUTTON_CLASS}`).forEach((button) => button.remove());
     document.querySelectorAll(`.${CARD_CLASS}`).forEach((card) => {
-        card.classList.remove(CARD_CLASS, FAVORITED_CLASS);
+        card.classList.remove(CARD_CLASS);
         delete card.dataset[ID_DATASET_KEY];
+        delete card.dataset[ORDER_DATASET_KEY];
     });
 }
 
